@@ -5,6 +5,15 @@
 #include <stdbool.h>
 #include <stdlib.h>
 #include <sys/wait.h>
+//Job details struct
+typedef struct {
+    int job_id;
+    char cmd_str[256];
+    pid_t pid;
+} JobDetails;
+
+static JobDetails active_job_list[99];
+static int total_bg_job;
 
 int execute_command (Command cmd_info){
     
@@ -89,9 +98,49 @@ int execute_command (Command cmd_info){
                 }
             }
         } else {
-            // printf("[%d] Started: %s (PID: %d)\n", job_id, cmd_str, pid);
-            // Add to background job list
-            //Check zombie processes before the main prompt. Probably palced at the bottom of the parent process
+            JobDetails curr_job;
+
+            if(total_bg_job == 0){
+                curr_job.job_id = 1;
+            } else {
+                curr_job.job_id = active_job_list[total_bg_job - 1].job_id + 1;
+            }
+            
+            snprintf(curr_job.cmd_str, sizeof(curr_job.cmd_str), "%s", cmd_info.command);
+            curr_job.pid = pid;
+
+            active_job_list[total_bg_job] = curr_job;
+            total_bg_job++;
+
+            printf("[%d] Started: %s (PID: %d)\n", curr_job.job_id, curr_job.cmd_str, curr_job.pid);
         }
     } 
+}
+
+void reap_zombies(){
+    //Iterate through the jobs in the list and update the number of jobs when being reaped 
+    //To be called after execvp and before mysh prompt
+    int status = 0;
+    pid_t termianted_pid = 0;
+
+    for(int i = 0; i < total_bg_job ; i++){
+        termianted_pid = waitpid(active_job_list[i].pid, &status, WNOHANG);
+
+        if (termianted_pid != 0 ){
+            if (termianted_pid == -1){
+                perror("Background termination error");
+            }
+
+            //Print "done" with the job details that will be terminated
+            printf("[%d] done %s", active_job_list[i].job_id, active_job_list[i].cmd_str);
+
+            //Remove the terminated job from list
+            for(int j = i; j < total_bg_job - 1; j++){
+                active_job_list[j] = active_job_list[j + 1];
+            }
+            
+            total_bg_job--;
+            i--;
+        }
+    }
 }
