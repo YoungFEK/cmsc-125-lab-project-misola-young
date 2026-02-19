@@ -3,6 +3,7 @@
 #define PARSER_H
 #include "command.h"
 
-Command parse(char *tokens[]);
+// Command parse(char *tokens[]);
+Command parse();
 
 #endif

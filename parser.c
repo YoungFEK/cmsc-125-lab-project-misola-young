@@ -1,64 +1,277 @@
 // parser.c
+// reminder free memory using free(), with a copy, u have indepence, safer code, 
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
 #include "command.h"
 #include <stdbool.h>
+#include "parser.h"
+#include <stdlib.h> 
 
-// #include "parser.h"
+// edit this to add the command typed(choose the safest method once the process is complete)
+void print_command_not_found(){
+    printf("command not found\n");
+}
 
-Command parse(char *tokens[]) {
+void print_unexpected_token(){
+    printf("unexpected token\n");
+}
 
-    Command statement;
-    statement.input_file = NULL;
-    statement.output_file = NULL;
-    statement.append = false;
-    statement.background = false;
+void print_too_many_args(){
+    printf("too many arguments\n");
+}
 
-    if (tokens[0] == NULL) {
-        return statement;
+void parse_exit_cmd(char *tokens[], Command *statement){
+
+     if(tokens[2] != NULL){
+        statement->command = NULL;
+        print_too_many_args();
+        return;
     }
 
-    else if (strcmp(tokens[0], "exit") == 0) {
-        // printf("exit command\n");
-        statement.command = tokens[0];
-        statement.args[0] = tokens[0];
-        statement.args[1] = NULL;
-        return statement;
+    statement->command = strdup(tokens[0]);
+
+    if( (tokens[1] != NULL) ){
+        if( (strcmp(tokens[1], "1") == 0) || (strcmp(tokens[1], "0") == 0)){
+            statement->args[0] = strdup(tokens[1]);
+            return;
+        }
+        //string coming after exit is neither 0 or 1
+        print_unexpected_token();
+        statement->command = NULL;
+    }
+}
+
+void parse_cd_cmd(char *tokens[], Command *statement){
+
+    if(tokens[2] != NULL){
+        statement->command = NULL;
+        print_too_many_args();
+        return;
     }
 
-    else if (strcmp(tokens[0], "cd") == 0) {
-        // if (tokens[1] != NULL) {
-        //     chdir(tokens[1]);
-        // } else {
-        //     printf("cd: missing argument\n");
-        // }
-        printf("cd command\n");
-        return statement;
+    statement->command = strdup(tokens[0]);
+
+    if( (tokens[1] != NULL) ){
+        //to be decided: whether or not this should be removed, and checking will be left chdir()
+        if(access(tokens[1], X_OK) != 0){
+            statement->command = NULL;
+            perror("cd");
+        }else{
+            statement->args[0] = strdup(tokens[1]);
+        }
+    }
+}
+
+
+void parse_pwd_cmd(char *tokens[], Command *statement){
+    if( (tokens[1] != NULL) ){
+        statement->command = NULL;
+        print_unexpected_token();
+        return;
     }
 
-    else if (strcmp(tokens[0], "pwd") == 0) {
-        // char cwd[1024];
-        // getcwd(cwd, sizeof(cwd));
-        // printf("%s\n", cwd);
-        //  printf("Input redirection\n");
-        // printf("pwd command\n");
+    statement->command = strdup(tokens[0]);
+    statement->args[0] = strdup(tokens[0]);
+    statement->args[1] = NULL;
+}
 
-        if(tokens[0] != "\0") {
-            statement.command = tokens[0];
-            statement.args[0] = tokens[0];
-            statement.args[1] = NULL;
-            // statment.input_file = NULL;
-            // statement.output_file = NULL;
-            // statement.append = false;
-            // statement.background = false;
+
+void parse_input_output_cmd(char *tokens[], Command *statement){
+    int token_index = 0;
+
+    statement->command = strdup(tokens[0]);
+
+    // initialize args with command name and other arguments until an operator or end of line is encountered
+    while ((tokens[token_index] != NULL) &&
+        (strcmp(tokens[token_index], "<") != 0) && 
+        (strcmp(tokens[token_index], ">") != 0) && 
+        (strcmp(tokens[token_index], ">>") != 0)  && 
+        (strcmp(tokens[token_index], "&") != 0)){
+
+        statement->args[token_index] = strdup(tokens[token_index]);
+        token_index++;
+    }
+
+    while (tokens[token_index] != NULL){
+        //check if token matches <
+        if(strcmp(tokens[token_index], "<") == 0){
+
+            //check if input file already exists
+            if(statement->input_file != NULL){
+                print_unexpected_token();
+                statement->command = NULL;
+                return;
+            }
+            
+            //move to the next token to check if file exists
+            token_index++; 
+            if(tokens[token_index] == NULL){
+                printf("missing file\n");
+                statement->command = NULL;
+                return;
+            }
+            
+            //assign to input or output file(separate function)
+            statement->input_file = strdup(tokens[token_index]); 
+        }
+        //check if token matches >
+        else if(strcmp(tokens[token_index], ">") == 0){
+
+            //check if output file already exists
+            if(statement->output_file != NULL){
+                print_unexpected_token();
+                statement->command = NULL;
+                return;
+            }
+
+            //move to the next token to check if file exists
+            token_index++; 
+            if(tokens[token_index] == NULL){
+                printf("missing file\n");
+                statement->command = NULL;
+                return;
+            }
+
+            //assign to input or output file(separate function)
+            statement->output_file = strdup(tokens[token_index]); 
+
+        }
+        //check if token matches >>
+        else if(strcmp(tokens[token_index], ">>") == 0){
+            //check if output file already exists
+            if(statement->output_file != NULL){
+                print_unexpected_token();
+                statement->command = NULL;
+                return;
+            }
+
+            //move to the next token to check if file exists
+            token_index++; 
+            if(tokens[token_index] == NULL){
+                printf("missing file\n");
+                statement->command = NULL;
+                return;
+            }
+
+            //assign to input or output file(separate function)
+            statement->output_file = strdup(tokens[token_index]); 
+            statement->append = true;
+
+        }
+        //check if token matches &
+        else if(strcmp(tokens[token_index], "&") == 0){
+            if(tokens[token_index+1] != NULL){
+                statement->command = NULL;
+                print_too_many_args();
+                return;
+            }else{
+                statement->background = true;
+                return;
+            }
+
+        }
+        //any token not matching the specified operators above is invalid
+        else{
+            statement->command = NULL;
+            print_unexpected_token();
+            return;
         }
 
 
-        return statement;
+        
+        token_index++;
+    }
+
+
+}
+
+
+
+
+Command parse() {
+
+    char user_input[100];
+    int user_input_index = 0;
+    char *tokens[100];
+    int user_input_index1 = 0;
+
+    printf("Enter words separated by spaces: ");
+    fgets(user_input, sizeof(user_input), stdin);
+
+
+    user_input[strcspn(user_input, "\n")] = '\0';
+
+    char *token = strtok(user_input, " ");
+
+    while (token != NULL) {
+        tokens[user_input_index1++] = strdup(token); // encounter problems with printing if strdup is not added here
+        token = strtok(NULL, " ");
+    }
+
+    tokens[user_input_index1] = NULL;
+    // tokens[user_input_index1] = strdup(token);
+
+
+    //checking for correct syntax
+    //data struct to be returned to main
+    Command statement = {0};  
+
+    // user_input is empty, tokens only has null element
+    if (tokens[0] == NULL) { 
+        print_command_not_found();
+    }
+    else if (strcmp(tokens[0], "exit") == 0) {
+        parse_exit_cmd(tokens, &statement);
+    }
+
+    else if (strcmp(tokens[0], "cd") == 0) {
+        parse_cd_cmd(tokens, &statement);
+    }
+
+    else if (strcmp(tokens[0], "pwd") == 0) {
+        parse_pwd_cmd(tokens, &statement);
+    }
+
+    else if (strcmp(tokens[0], "ls") == 0) {
+        parse_input_output_cmd(tokens, &statement);
+    }
+
+    else if (strcmp(tokens[0], "wc") == 0) {
+        parse_input_output_cmd(tokens, &statement);
+    }
+
+    else if (strcmp(tokens[0], "sort") == 0) {
+        parse_input_output_cmd(tokens, &statement); 
+    }
+
+    else if (strcmp(tokens[0], "echo") == 0) {
+        parse_pwd_cmd(tokens, &statement); //not started
+    }
+
+    else if (strcmp(tokens[0], "cat") == 0) {
+        parse_input_output_cmd(tokens, &statement);
+    }
+
+    else if (strcmp(tokens[0], "sleep") == 0) {
+        parse_pwd_cmd(tokens, &statement); //not started
     }
 
     else {
-        printf("External command: %s\n", tokens[0]);
+        print_command_not_found();
     }
+
+    for(int j = 0; tokens[j] != NULL; j++) {
+        free(tokens[j]);
+    }
+
+    return statement;
+
 }
+
+
+
+
+// for (int i = 0; i < user_input_index1; i++) {
+    //     printf("Token %d: %s\n", i + 1, tokens[i]);
+    // }
