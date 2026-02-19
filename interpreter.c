@@ -5,6 +5,9 @@
 #include <stdbool.h>
 #include <stdlib.h>
 #include <sys/wait.h>
+#include <errno.h>
+#include "command.h"
+
 //Job details struct
 typedef struct {
     int job_id;
@@ -16,31 +19,31 @@ static JobDetails active_job_list[99];
 static int total_bg_job;
 
 int execute_command (Command cmd_info){
-    
+    //If cmd is exit then kill all orphan processes then use exit command
     if (!strcmp(cmd_info.command, "exit")){
         exit(0);
-        
+    
+    //If command is cd 
     } else if (!strcmp(cmd_info.command, "cd")){
         if (chdir(cmd_info.args[1]) < 0){
-
-            //Possible to add more error cases depending on value of errno variable
-            perror("chdir() failed");
+            printf("cd %s : %s", cmd_info.args[1], strerror(errno));
             return 0;
         }
         return 0;
-
+    
+    //If command is pwd
     } else if (!strcmp(cmd_info.command, "pwd")) {
         char curr_dir[99];
-        getcwd(curr_dir, sizeof(curr_dir));
 
-        if (curr_dir != NULL) {
+        if (getcwd(curr_dir, sizeof(curr_dir)) != NULL) {
             printf("%s\n", curr_dir);
             return 0;
         } else {
-            perror("Getting current directory error");
+            perror("Error pwd");
         }
     }
 
+    //Extrenal Commands
     pid_t pid = fork();
 
     if (pid < 0) {
@@ -49,7 +52,7 @@ int execute_command (Command cmd_info){
     }
 
     if (pid == 0) {  // Child process
-        // Apply redirections if needed
+        //From file to the shell
         if (cmd_info.input_file) {
             int file_code = open(cmd_info.input_file, O_RDONLY);
             if (file_code < 0) {
@@ -60,6 +63,7 @@ int execute_command (Command cmd_info){
             close(file_code);
         }
         
+        //From shell to the file
         if (cmd_info.output_file) {
             int flags = O_WRONLY | O_CREAT;
             if (cmd_info.append){
@@ -93,10 +97,10 @@ int execute_command (Command cmd_info){
                 
                 if (exit_code != 0) {
                     printf("Command exited with code %d\n", exit_code);
-                } else{
-                    //Error in exiting
+                    perror("Error in exiting command");
                 }
             }
+
         } else {
             JobDetails curr_job;
 
