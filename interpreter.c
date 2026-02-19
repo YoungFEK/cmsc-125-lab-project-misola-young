@@ -7,23 +7,12 @@
 #include <sys/wait.h>
 
 int execute_command (Command cmd_info){
-    //DEBUG
-    printf("Executing: %s\n", cmd_info.command);
-    char curr_dir[99];
-    getcwd(curr_dir, sizeof(curr_dir));
-    printf("Current Directory: %s\n", curr_dir);
-
+    
     if (!strcmp(cmd_info.command, "exit")){
         exit(0);
-        //Kill orphan processes from background processes
         
     } else if (!strcmp(cmd_info.command, "cd")){
-        //DEBUG
-        printf("changed dir\n");
-
         if (chdir(cmd_info.args[1]) < 0){
-            //DEBUG
-            printf("CHANGEE: %s\n", cmd_info.args[1]);
 
             //Possible to add more error cases depending on value of errno variable
             perror("chdir() failed");
@@ -93,7 +82,6 @@ int execute_command (Command cmd_info){
             if (WIFEXITED(status)) {
                 int exit_code = WEXITSTATUS(status);
                 
-                //DEBUG
                 if (exit_code != 0) {
                     printf("Command exited with code %d\n", exit_code);
                 } else{
