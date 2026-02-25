@@ -1,0 +1,15 @@
+exit
+exit 1
+cd 
+cd direc
+pwd
+ls > out.txt
+echo hello > greeting.txt
+sort < names.txt
+wc -l < data.txt
+sort < names.txt > sorted.txt
+ls >> file.txt
+sleep 10 &
+ls > out.txt &
+sort < names.txt > sorted.txt &
+sort < names.txt > sorted.txt & me
