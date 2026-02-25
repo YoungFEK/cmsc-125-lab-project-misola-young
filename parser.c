@@ -182,10 +182,36 @@ void parse_input_output_cmd(char *tokens[], Command *statement){
         
         token_index++;
     }
-
-
 }
 
+void parse_sleep_cmd(char *tokens[], Command *statement){
+
+    if( (tokens[2] != NULL) && 
+        (strcmp(tokens[2], "&") == 0) ){
+        
+        statement->background = true;
+    }else{
+        statement->command = NULL;
+        print_unexpected_token();
+        return;
+    }
+
+    statement->command = strdup(tokens[0]);
+
+
+    if( (tokens[1] != NULL) ){
+        statement->args[0] = strdup(tokens[0]);
+        statement->args[1] = strdup(tokens[1]);
+        return;
+
+    }else{
+        statement->command = NULL;
+        print_unexpected_token();
+        return;
+    }
+
+    
+}
 
 
 
@@ -196,7 +222,7 @@ Command parse() {
     char *tokens[100];
     int user_input_index1 = 0;
 
-    printf("Enter words separated by spaces: ");
+    printf("mysh> ");
     fgets(user_input, sizeof(user_input), stdin);
 
 
@@ -246,7 +272,7 @@ Command parse() {
     }
 
     else if (strcmp(tokens[0], "echo") == 0) {
-        parse_pwd_cmd(tokens, &statement); //not started
+        parse_input_output_cmd(tokens, &statement); 
     }
 
     else if (strcmp(tokens[0], "cat") == 0) {
@@ -254,7 +280,7 @@ Command parse() {
     }
 
     else if (strcmp(tokens[0], "sleep") == 0) {
-        parse_pwd_cmd(tokens, &statement); //not started
+        parse_sleep_cmd(tokens, &statement); 
     }
 
     else {
