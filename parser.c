@@ -186,14 +186,14 @@ void parse_input_output_cmd(char *tokens[], Command *statement){
 
 void parse_sleep_cmd(char *tokens[], Command *statement){
 
-    if( (tokens[2] != NULL) && 
-        (strcmp(tokens[2], "&") == 0) ){
-        
-        statement->background = true;
-    }else{
-        statement->command = NULL;
-        print_unexpected_token();
-        return;
+     if( (tokens[2] != NULL)){
+        if(strcmp(tokens[2], "&") == 0){
+            statement->background = true;
+        }else{
+            statement->command = NULL;
+            print_unexpected_token();
+            return;
+        }
     }
 
     statement->command = strdup(tokens[0]);
@@ -218,7 +218,6 @@ void parse_sleep_cmd(char *tokens[], Command *statement){
 Command parse() {
 
     char user_input[100];
-    int user_input_index = 0;
     char *tokens[100];
     int user_input_index1 = 0;
 
