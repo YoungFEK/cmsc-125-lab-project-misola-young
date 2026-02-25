@@ -184,6 +184,8 @@ void parse_input_output_cmd(char *tokens[], Command *statement){
     }
 }
 
+
+
 void parse_sleep_cmd(char *tokens[], Command *statement){
 
     if( (tokens[2] != NULL) && 
@@ -208,11 +210,153 @@ void parse_sleep_cmd(char *tokens[], Command *statement){
         statement->command = NULL;
         print_unexpected_token();
         return;
-    }
-
-    
+    }   
 }
 
+char *remove_quotes(const char *str) {
+    int len = strlen(str);
+
+    if (len == 0)
+        return strdup(str);
+
+    int start = 0;
+    int end = len;
+
+    // Remove leading quote
+    if (str[0] == '"') {
+        start = 1;
+    }
+
+    // Remove trailing quote
+    if (len > 1 && str[len - 1] == '"') {
+        end = len - 1;
+    }
+
+    int new_len = end - start;
+
+    char *result = malloc(new_len + 1);
+    if (!result)
+        return NULL;
+
+    strncpy(result, str + start, new_len);
+    result[new_len] = '\0';
+
+    return result;
+}
+
+
+void parse_echo_cmd(char *tokens[], Command *statement){
+    int token_index = 0;
+
+    statement->command = strdup(tokens[0]);
+
+    // initialize args with command name and other arguments until an operator or end of line is encountered
+    while ((tokens[token_index] != NULL) &&
+        (strcmp(tokens[token_index], "<") != 0) && 
+        (strcmp(tokens[token_index], ">") != 0) && 
+        (strcmp(tokens[token_index], ">>") != 0)  && 
+        (strcmp(tokens[token_index], "&") != 0)){
+
+    
+
+
+        
+
+        // statement->args[token_index] = strdup(tokens[token_index]);
+        statement->args[token_index] = remove_quotes(tokens[token_index]);
+        token_index++;
+    }
+
+    while (tokens[token_index] != NULL){
+        //check if token matches <
+        if(strcmp(tokens[token_index], "<") == 0){
+
+            //check if input file already exists
+            if(statement->input_file != NULL){
+                print_unexpected_token();
+                statement->command = NULL;
+                return;
+            }
+            
+            //move to the next token to check if file exists
+            token_index++; 
+            if(tokens[token_index] == NULL){
+                printf("missing file\n");
+                statement->command = NULL;
+                return;
+            }
+            
+            //assign to input or output file(separate function)
+            statement->input_file = strdup(tokens[token_index]); 
+        }
+        //check if token matches >
+        else if(strcmp(tokens[token_index], ">") == 0){
+
+            //check if output file already exists
+            if(statement->output_file != NULL){
+                print_unexpected_token();
+                statement->command = NULL;
+                return;
+            }
+
+            //move to the next token to check if file exists
+            token_index++; 
+            if(tokens[token_index] == NULL){
+                printf("missing file\n");
+                statement->command = NULL;
+                return;
+            }
+
+            //assign to input or output file(separate function)
+            statement->output_file = strdup(tokens[token_index]); 
+
+        }
+        //check if token matches >>
+        else if(strcmp(tokens[token_index], ">>") == 0){
+            //check if output file already exists
+            if(statement->output_file != NULL){
+                print_unexpected_token();
+                statement->command = NULL;
+                return;
+            }
+
+            //move to the next token to check if file exists
+            token_index++; 
+            if(tokens[token_index] == NULL){
+                printf("missing file\n");
+                statement->command = NULL;
+                return;
+            }
+
+            //assign to input or output file(separate function)
+            statement->output_file = strdup(tokens[token_index]); 
+            statement->append = true;
+
+        }
+        //check if token matches &
+        else if(strcmp(tokens[token_index], "&") == 0){
+            if(tokens[token_index+1] != NULL){
+                statement->command = NULL;
+                print_too_many_args();
+                return;
+            }else{
+                statement->background = true;
+                return;
+            }
+
+        }
+        //any token not matching the specified operators above is invalid
+        else{
+            statement->command = NULL;
+            print_unexpected_token();
+            return;
+        }
+
+
+        
+        token_index++;
+    }
+}
 
 
 Command parse() {
