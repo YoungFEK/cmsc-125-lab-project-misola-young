@@ -40,6 +40,7 @@ void parse_exit_cmd(char *tokens[], Command *statement){
         print_unexpected_token();
         statement->command = NULL;
     }
+
 }
 
 void parse_cd_cmd(char *tokens[], Command *statement){
@@ -359,14 +360,13 @@ void parse_echo_cmd(char *tokens[], Command *statement){
 }
 
 
-Command parse() {
+Command parse(char *user_input) {
 
-    char user_input[100];
-    char *tokens[100];
+    // to prevent unpredictable behavior when checking for excess tokens
+    char *tokens[100] = {0}; 
     int user_input_index1 = 0;
 
-    printf("mysh> ");
-    fgets(user_input, sizeof(user_input), stdin);
+    Command statement = {0};  
 
 
     user_input[strcspn(user_input, "\n")] = '\0';
@@ -381,10 +381,12 @@ Command parse() {
     tokens[user_input_index1] = NULL;
     // tokens[user_input_index1] = strdup(token);
 
-
-    //checking for correct syntax
-    //data struct to be returned to main
-    Command statement = {0};  
+    //for checking contents of tokens which will help in debugging
+    // for(int i=0; i<100 ; i++){
+    //     printf("%s, ", tokens[i]);
+    // }
+    // printf("\n");
+    
 
     // user_input is empty, tokens only has null element
     if (tokens[0] == NULL) { 
