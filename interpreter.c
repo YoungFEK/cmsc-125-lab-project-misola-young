@@ -19,8 +19,9 @@ typedef struct {
     pid_t pid;
 } JobDetails;
 
-static JobDetails active_job_list[99];
+static JobDetails active_job_list[MAX_JOBS];
 static int total_bg_job;
+static int lowest_job_id = 1;
 
 int execute_command (Command cmd_info){
     //If cmd is exit then kill all orphan processes then use exit command
@@ -108,19 +109,21 @@ int execute_command (Command cmd_info){
         } else {
             JobDetails curr_job;
 
-            if(total_bg_job == 0){
-                curr_job.job_id = 1;
-            } else {
-                curr_job.job_id = active_job_list[total_bg_job - 1].job_id + 1;
-            }
-            
-            snprintf(curr_job.cmd_str, sizeof(curr_job.cmd_str), "%s", cmd_info.command);
+            curr_job.job_id = lowest_job_id;
+            snprintf(curr_job.cmd_str, sizeof(curr_job.cmd_str), "%s", cmd_info.command); //Use free() and replace with strdup, cuz need consistency
             curr_job.pid = pid;
 
-            active_job_list[total_bg_job] = curr_job;
-            total_bg_job++;
+            active_job_list[curr_job.job_id - 1] = curr_job;
 
             printf("[%d] Started: %s (PID: %d)\n", curr_job.job_id, curr_job.cmd_str, curr_job.pid);
+
+            do{ //Find next free space, seems efficient for now - maybe use for loop again
+                lowest_job_id++;
+                if (lowest_job_id > MAX_JOBS){
+                    perror("Exceeded maximum number of background jobs");
+                }
+            } while (active_job_list[lowest_job_id].pid != 0);
+            total_bg_job++;
         }
     } 
 }
