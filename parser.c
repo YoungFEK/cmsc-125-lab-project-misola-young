@@ -59,7 +59,8 @@ void parse_cd_cmd(char *tokens[], Command *statement){
             statement->command = NULL;
             perror("cd");
         }else{
-            statement->args[0] = strdup(tokens[1]);
+            statement->args[0] = strdup(tokens[0]);
+            statement->args[1] = strdup(tokens[1]);
         }
     }
 }
