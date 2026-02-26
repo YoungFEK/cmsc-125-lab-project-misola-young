@@ -10,7 +10,6 @@ int main(int argc, char *argv[]) {
 
     Command statement;
     char user_input[256];
-    int user_input_index =0;
 
     if (argc < 2) { 
         while(1){
