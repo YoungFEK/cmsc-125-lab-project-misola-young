@@ -8,6 +8,10 @@
 #include <errno.h>
 #include "command.h"
 
+void reap_zombies();
+
+#define MAX_JOBS 99
+
 //Job details struct
 typedef struct {
     int job_id;
@@ -123,28 +127,36 @@ int execute_command (Command cmd_info){
 
 void reap_zombies(){
     //Iterate through the jobs in the list and update the number of jobs when being reaped 
-    //To be called after execvp and before mysh prompt
     int status = 0;
-    pid_t termianted_pid = 0;
 
-    for(int i = 0; i < total_bg_job ; i++){
-        termianted_pid = waitpid(active_job_list[i].pid, &status, WNOHANG);
+    for(pid_t termianted_pid = waitpid(-1, &status, WNOHANG); termianted_pid > 0; termianted_pid = waitpid(-1, &status, WNOHANG)){
 
-        if (termianted_pid != 0 ){
-            if (termianted_pid == -1){
+        if (termianted_pid < 0 ){
+            if (termianted_pid == -1 && errno != ECHILD){
                 perror("Background termination error");
+                break;
             }
 
-            //Print "done" with the job details that will be terminated
-            printf("[%d] done %s", active_job_list[i].job_id, active_job_list[i].cmd_str);
+        } else { //Remove terminated job by finding its index 
+            int term_job_index = 0;
+            for (; termianted_pid != active_job_list[term_job_index].pid ; term_job_index++){
+                if (term_job_index >= MAX_JOBS){
+                    perror("Missing job process inside list");
+                }
+            }
+
+            //Print "done" with the job details to notify users - Add exit status
+            printf("[%d] done %s \n", active_job_list[term_job_index].job_id, active_job_list[term_job_index].cmd_str);
 
             //Remove the terminated job from list
-            for(int j = i; j < total_bg_job - 1; j++){
-                active_job_list[j] = active_job_list[j + 1];
+            active_job_list[term_job_index].pid = 0;
+            //FREE the strings using young func
+
+            term_job_index++;
+            if(term_job_index < lowest_job_id){
+                lowest_job_id = term_job_index;
             }
-            
             total_bg_job--;
-            i--;
         }
     }
 }
