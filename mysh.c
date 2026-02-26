@@ -45,7 +45,7 @@ int main(int argc, char *argv[]) {
 
         char line[256];
         while (fgets(user_input, sizeof(line), file)) {
-            printf("mysh> %s\n", user_input);
+            printf("mysh> %s", user_input);
             statement = parse(user_input);
 
             if(statement.command == NULL){
