@@ -7,6 +7,7 @@
 #include <sys/wait.h>
 #include <errno.h>
 #include <signal.h>
+#include <unistd.h>
 #include "command.h"
 
 void free_cmd_struct(Command cmd_info);
