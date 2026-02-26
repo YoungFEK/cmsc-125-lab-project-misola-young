@@ -29,6 +29,10 @@ int main(int argc, char *argv[]) {
             // While the current character is NOT null
             fgets(user_input, sizeof(user_input), stdin);
             statement = parse(user_input);
+
+            if(statement.command == NULL){
+                continue;
+            }
             execute_command(statement);
 
         }
@@ -41,8 +45,13 @@ int main(int argc, char *argv[]) {
 
         char line[256];
         while (fgets(user_input, sizeof(line), file)) {
-            printf("mysh> %s", user_input);
+            printf("mysh> %s\n", user_input);
             statement = parse(user_input);
+
+            if(statement.command == NULL){
+                continue;
+            }
+
             execute_command(statement);
 
         }
