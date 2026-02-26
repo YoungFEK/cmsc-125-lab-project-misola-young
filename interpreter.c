@@ -65,7 +65,11 @@ int execute_command (Command cmd_info){
             reap_zombies();
         }
 
-        exit(0);
+        if(cmd_info.args[1] != NULL){
+            exit(atoi(cmd_info.args[1]));
+        }else{
+            exit(0);
+        }
     
     //If command is cd 
     } else if (!strcmp(cmd_info.command, "cd")){
