@@ -15,6 +15,9 @@ interpreter.o: interpreter.c
 run: all
 	@./lab1
 
+runTest: all
+	@./lab1 tester.txt
+
 clean:
 	@echo "removed object and program files"
 	@rm -f mysh.o parser.o interpreter.o lab1
