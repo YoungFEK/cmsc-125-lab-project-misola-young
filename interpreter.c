@@ -19,8 +19,9 @@ void reap_zombies();
 //Job details struct
 typedef struct {
     int job_id;
-    char cmd_str[256];
+    char *cmd_str;
     pid_t pid;
+    Command command_details;
 } JobDetails;
 
 static JobDetails active_job_list[MAX_JOBS];
@@ -154,7 +155,7 @@ int execute_command (Command cmd_info){
             JobDetails curr_job;
 
             curr_job.job_id = lowest_job_id;
-            snprintf(curr_job.cmd_str, sizeof(curr_job.cmd_str), "%s", cmd_info.command); //Use free() and replace with strdup, cuz need consistency
+            curr_job.cmd_str = strdup(cmd_info.command);
             curr_job.pid = pid;
 
             active_job_list[curr_job.job_id - 1] = curr_job;
@@ -197,7 +198,8 @@ void reap_zombies(){
 
             //Remove the terminated job from list
             active_job_list[term_job_index].pid = 0;
-            //FREE the strings using young func
+            free(active_job_list[term_job_index].cmd_str);
+            free_cmd_struct(active_job_list[term_job_index].command_details);
 
             term_job_index++;
             if(term_job_index < lowest_job_id){
