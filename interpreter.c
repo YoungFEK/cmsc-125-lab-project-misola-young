@@ -6,6 +6,7 @@
 #include <stdlib.h>
 #include <sys/wait.h>
 #include <errno.h>
+#include <signal.h>
 #include "command.h"
 
 void reap_zombies();
@@ -24,8 +25,44 @@ static int total_bg_job;
 static int lowest_job_id = 1;
 
 int execute_command (Command cmd_info){
-    //If cmd is exit then kill all orphan processes then use exit command
     if (!strcmp(cmd_info.command, "exit")){
+        int active_job_pid[total_bg_job];
+        int total_active_bg = total_bg_job;
+        int status = 1;
+        
+        //Kill remaining orphans for proper exit
+        for(int curr_index = MAX_JOBS - 1; curr_index >= 0; curr_index--){
+            if(active_job_list[curr_index].pid > 0){
+                status = kill(active_job_list[curr_index].pid, SIGTERM);
+
+                if (status < 0){
+                    perror("Kill through termination signal failed");
+                }
+
+                active_job_pid[total_bg_job - total_active_bg] = active_job_list[curr_index].pid;
+                total_active_bg--;
+                if (total_active_bg <= 0){
+                    break;
+                }
+            }
+        }
+        total_active_bg = total_bg_job;
+        reap_zombies();
+
+        //Catch orphans that ignored terminate signal
+        if(total_bg_job > 0){
+            for(int curr_index = 0; curr_index > total_active_bg; curr_index++){
+                if(waitpid(active_job_list[curr_index].pid, &status, WNOHANG) == 0){
+                    kill(active_job_list[curr_index].pid, SIGKILL);
+
+                    if (status < 0){
+                        perror("Kill through force kill signal failed");
+                    }
+                }
+            }
+            reap_zombies();
+        }
+
         exit(0);
     
     //If command is cd 
