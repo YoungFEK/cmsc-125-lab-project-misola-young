@@ -6,9 +6,14 @@
 #include <stdlib.h>
 #include <sys/wait.h>
 #include <errno.h>
+#include <signal.h>
 #include "command.h"
 
 void free_cmd_struct(Command cmd_info);
+
+void reap_zombies();
+
+#define MAX_JOBS 99
 
 //Job details struct
 typedef struct {
@@ -17,12 +22,49 @@ typedef struct {
     pid_t pid;
 } JobDetails;
 
-static JobDetails active_job_list[99];
+static JobDetails active_job_list[MAX_JOBS];
 static int total_bg_job;
+static int lowest_job_id = 1;
 
 int execute_command (Command cmd_info){
-    //If cmd is exit then kill all orphan processes then use exit command
     if (!strcmp(cmd_info.command, "exit")){
+        int active_job_pid[total_bg_job];
+        int total_active_bg = total_bg_job;
+        int status = 1;
+        
+        //Kill remaining orphans for proper exit
+        for(int curr_index = MAX_JOBS - 1; curr_index >= 0; curr_index--){
+            if(active_job_list[curr_index].pid > 0){
+                status = kill(active_job_list[curr_index].pid, SIGTERM);
+
+                if (status < 0){
+                    perror("Kill through termination signal failed");
+                }
+
+                active_job_pid[total_bg_job - total_active_bg] = active_job_list[curr_index].pid;
+                total_active_bg--;
+                if (total_active_bg <= 0){
+                    break;
+                }
+            }
+        }
+        total_active_bg = total_bg_job;
+        reap_zombies();
+
+        //Catch orphans that ignored terminate signal
+        if(total_bg_job > 0){
+            for(int curr_index = 0; curr_index > total_active_bg; curr_index++){
+                if(waitpid(active_job_list[curr_index].pid, &status, WNOHANG) == 0){
+                    kill(active_job_list[curr_index].pid, SIGKILL);
+
+                    if (status < 0){
+                        perror("Kill through force kill signal failed");
+                    }
+                }
+            }
+            reap_zombies();
+        }
+
         exit(0);
     
     //If command is cd 
@@ -106,51 +148,60 @@ int execute_command (Command cmd_info){
         } else {
             JobDetails curr_job;
 
-            if(total_bg_job == 0){
-                curr_job.job_id = 1;
-            } else {
-                curr_job.job_id = active_job_list[total_bg_job - 1].job_id + 1;
-            }
-            
-            snprintf(curr_job.cmd_str, sizeof(curr_job.cmd_str), "%s", cmd_info.command);
+            curr_job.job_id = lowest_job_id;
+            snprintf(curr_job.cmd_str, sizeof(curr_job.cmd_str), "%s", cmd_info.command); //Use free() and replace with strdup, cuz need consistency
             curr_job.pid = pid;
 
-            active_job_list[total_bg_job] = curr_job;
-            total_bg_job++;
+            active_job_list[curr_job.job_id - 1] = curr_job;
 
             printf("[%d] Started: %s (PID: %d)\n", curr_job.job_id, curr_job.cmd_str, curr_job.pid);
+
+            do{ //Find next free space, seems efficient for now - maybe use for loop again
+                lowest_job_id++;
+                if (lowest_job_id > MAX_JOBS){
+                    perror("Exceeded maximum number of background jobs");
+                }
+            } while (active_job_list[lowest_job_id].pid != 0);
+            total_bg_job++;
         }
     } 
 }
 
 void reap_zombies(){
     //Iterate through the jobs in the list and update the number of jobs when being reaped 
-    //To be called after execvp and before mysh prompt
     int status = 0;
-    pid_t termianted_pid = 0;
 
-    for(int i = 0; i < total_bg_job ; i++){
-        termianted_pid = waitpid(active_job_list[i].pid, &status, WNOHANG);
+    for(pid_t termianted_pid = waitpid(-1, &status, WNOHANG); termianted_pid > 0; termianted_pid = waitpid(-1, &status, WNOHANG)){
 
-        if (termianted_pid != 0 ){
-            if (termianted_pid == -1){
+        if (termianted_pid < 0 ){
+            if (termianted_pid == -1 && errno != ECHILD){
                 perror("Background termination error");
+                break;
             }
 
-            //Print "done" with the job details that will be terminated
-            printf("[%d] done %s", active_job_list[i].job_id, active_job_list[i].cmd_str);
+        } else { //Remove terminated job by finding its index 
+            int term_job_index = 0;
+            for (; termianted_pid != active_job_list[term_job_index].pid ; term_job_index++){
+                if (term_job_index >= MAX_JOBS){
+                    perror("Missing job process inside list");
+                }
+            }
+
+            //Print "done" with the job details to notify users - Add exit status
+            printf("[%d] done %s \n", active_job_list[term_job_index].job_id, active_job_list[term_job_index].cmd_str);
 
             //Remove the terminated job from list
-            for(int j = i; j < total_bg_job - 1; j++){
-                active_job_list[j] = active_job_list[j + 1];
+            active_job_list[term_job_index].pid = 0;
+            //FREE the strings using young func
+
+            term_job_index++;
+            if(term_job_index < lowest_job_id){
+                lowest_job_id = term_job_index;
             }
-            
             total_bg_job--;
-            i--;
         }
     }
 }
-
 
 void free_cmd_struct(Command cmd_info){
     if(cmd_info.command != NULL){

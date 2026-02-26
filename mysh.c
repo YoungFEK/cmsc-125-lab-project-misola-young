@@ -126,14 +126,7 @@ int main(int argc, char *argv[]) {
     }
 
     
-
-
-    
-
     // free_cmd_struct(statement);
-    
-
-
     
     return 0;
 }
