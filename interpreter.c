@@ -8,6 +8,8 @@
 #include <errno.h>
 #include "command.h"
 
+void free_cmd_struct(Command cmd_info);
+
 //Job details struct
 typedef struct {
     int job_id;
@@ -147,4 +149,25 @@ void reap_zombies(){
             i--;
         }
     }
+}
+
+
+void free_cmd_struct(Command cmd_info){
+    if(cmd_info.command != NULL){
+        free(cmd_info.command);
+        int args_index = 0;
+        while(cmd_info.args[args_index] != NULL){
+            free(cmd_info.args[args_index]);
+            args_index++;
+        }
+
+        if(cmd_info.input_file != NULL){
+            free(cmd_info.input_file);
+        }
+
+        if(cmd_info.output_file != NULL){
+            free(cmd_info.output_file );
+        }
+    }
+    
 }
