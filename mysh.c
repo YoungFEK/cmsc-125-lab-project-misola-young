@@ -14,7 +14,7 @@ int main(int argc, char *argv[]) {
 
     if (argc < 2) { 
         while(1){
-            
+            reap_zombies();
             printf("mysh> ");
 
             // While the current character is NOT null
@@ -36,6 +36,7 @@ int main(int argc, char *argv[]) {
 
         char line[256];
         while (fgets(user_input, sizeof(line), file)) {
+            reap_zombies();
             printf("mysh> %s", user_input);
             statement = parse(user_input);
 
