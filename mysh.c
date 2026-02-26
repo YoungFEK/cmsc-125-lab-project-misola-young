@@ -6,15 +6,6 @@
 #include <stdlib.h> 
 #include <string.h>
 
-void clearUntilNull(char *str) {
-    if (str == NULL) return; // Safety check
-
-    while (*str != '\0') {
-        *str = '\0';
-        str++;
-    }
-}
-
 int main(int argc, char *argv[]) {
 
     Command statement;
