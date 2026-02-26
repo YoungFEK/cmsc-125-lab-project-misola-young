@@ -76,7 +76,7 @@ int execute_command (Command cmd_info){
     //If command is cd 
     } else if (!strcmp(cmd_info.command, "cd")){
         if (chdir(cmd_info.args[1]) < 0){
-            printf("cd %s : %s", cmd_info.args[1], strerror(errno));
+            printf("cd %s : %s\n", cmd_info.args[1], strerror(errno));
             return 0;
         }
         return 0;
