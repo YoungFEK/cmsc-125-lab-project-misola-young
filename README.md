@@ -10,7 +10,7 @@ Francis Eugene Kho Young (YoungFEK)
 ## Compilation and usage instructions
 **to compile**: make lab1\
 **to run repl**: make run\
-**to run tester**: make runTest\ 
+**to run tester**: make runTest 
 
 
 ## POSIX API
