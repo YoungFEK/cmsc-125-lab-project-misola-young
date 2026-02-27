@@ -8,9 +8,9 @@ Francis Eugene Kho Young (YoungFEK)
 > This project is still in development!
 
 ## Compilation and usage instructions
-**to compile**: make lab1
-**to run repl**: make run
-**to run tester**: make runTest 
+**to compile**: make lab1\
+**to run repl**: make run\
+**to run tester**: make runTest\ 
 
 
 ## POSIX API
