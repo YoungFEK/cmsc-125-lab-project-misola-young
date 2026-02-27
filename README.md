@@ -7,6 +7,12 @@ Francis Eugene Kho Young (YoungFEK)
 > [!NOTE]
 > This project is still in development!
 
+## Compilation and usage instructions
+**to compile**: make lab1
+**to run repl**: make run
+**to run tester**: make runTest 
+
+
 ## POSIX API
 POSIX API is utilized througught the project. This inludes the following functions:
 
@@ -24,12 +30,7 @@ POSIX API is utilized througught the project. This inludes the following functio
 
 ## Solution Architecture
 ### 1. myshell.c
-The main file that calls the other parts of the code.
-
-### 2. lexer.c
-Returns a list of token structure variable from an input string.\
-Utilizes strtok() to separate input string by white space.\
-A token structure will be utilized to differentiate different token types.
+The main file that calls the other parts of the code. Passes user input or a line(when running tester) in the tester file to parser.c so that it may be split into tokens and the format would be evaluated. 
 
 ### 3. parser.c
 Return a command structure variable from a list of token structure variables to be executed.\
@@ -107,6 +108,15 @@ if (pid == 0) {  // Child process
 }
 ```
 </details>
+
+## Design Limitations
+**Missing features**: cannot parse redirection commands with no spaces in between tokens.
+
+
+## Screenshots
+<img width="1442" height="740" alt="image" src="https://github.com/user-attachments/assets/fafec099-8304-4d16-9250-1ea0510a1b81" />
+
+
 
 ## Timeline
 | Week Number | Objective |
